@@ -1,15 +1,19 @@
 import type { Mode, ModeId, Settings } from '../types';
 import { MODES } from '../data/modes';
 import { InfoIcon, SoundOffIcon, SoundOnIcon } from '../components/icons';
+import { MAX_TEAMS, MIN_TEAMS, OUTCOME_LABELS } from '../lib/outcome';
+import type { Outcome } from '../lib/outcome';
 
 interface MenuScreenProps {
   settings: Settings;
   onPick: (id: ModeId) => void;
   onShowRules: () => void;
-  onToggleSound: () => void;
+  onChange: (patch: Partial<Settings>) => void;
 }
 
-export function MenuScreen({ settings, onPick, onShowRules, onToggleSound }: MenuScreenProps) {
+const OUTCOMES: Outcome[] = ['one', 'order', 'teams'];
+
+export function MenuScreen({ settings, onPick, onShowRules, onChange }: MenuScreenProps) {
   return (
     <div className="screen menu-screen">
       <header className="menu-header">
@@ -20,7 +24,7 @@ export function MenuScreen({ settings, onPick, onShowRules, onToggleSound }: Men
         <div className="menu-actions">
           <button
             className="icon-button"
-            onClick={onToggleSound}
+            onClick={() => onChange({ soundEnabled: !settings.soundEnabled })}
             aria-label={settings.soundEnabled ? 'Turn sound off' : 'Turn sound on'}
           >
             {settings.soundEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
@@ -31,7 +35,36 @@ export function MenuScreen({ settings, onPick, onShowRules, onToggleSound }: Men
         </div>
       </header>
 
-      <p className="menu-lead">Pick a way to pick.</p>
+      <div className="segmented" role="group" aria-label="What to pick">
+        {OUTCOMES.map((outcome) => (
+          <button
+            key={outcome}
+            className={`segment${settings.outcome === outcome ? ' selected' : ''}`}
+            onClick={() => onChange({ outcome })}
+            aria-pressed={settings.outcome === outcome}
+          >
+            {OUTCOME_LABELS[outcome]}
+          </button>
+        ))}
+      </div>
+
+      {settings.outcome === 'teams' && (
+        <div className="team-count">
+          <span>How many teams?</span>
+          <div className="segmented compact">
+            {Array.from({ length: MAX_TEAMS - MIN_TEAMS + 1 }, (_, i) => MIN_TEAMS + i).map((n) => (
+              <button
+                key={n}
+                className={`segment${settings.teamCount === n ? ' selected' : ''}`}
+                onClick={() => onChange({ teamCount: n })}
+                aria-pressed={settings.teamCount === n}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mode-list">
         {MODES.map((mode) => (

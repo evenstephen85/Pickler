@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import type { Mode, Settings } from '../types';
 import { TouchPick } from '../modes/TouchPick';
+import { Twine } from '../modes/Twine';
+import { Spinner } from '../modes/Spinner';
+import { HotPotato } from '../modes/HotPotato';
+import { Bumper } from '../modes/Bumper';
+import { Hint } from '../components/Hint';
 import { BackIcon, InfoIcon } from '../components/icons';
+import { OUTCOME_LABELS } from '../lib/outcome';
 
 interface PlayScreenProps {
   mode: Mode;
@@ -9,8 +15,17 @@ interface PlayScreenProps {
   onExit: () => void;
 }
 
+const MODE_COMPONENTS = {
+  'touch-pick': TouchPick,
+  twine: Twine,
+  spinner: Spinner,
+  potato: HotPotato,
+  bumper: Bumper,
+} as const;
+
 export function PlayScreen({ mode, settings, onExit }: PlayScreenProps) {
   const [showRules, setShowRules] = useState(false);
+  const Game = MODE_COMPONENTS[mode.id];
 
   return (
     <div className="play-screen">
@@ -20,6 +35,7 @@ export function PlayScreen({ mode, settings, onExit }: PlayScreenProps) {
         <button className="icon-button ghost" onClick={onExit} aria-label="Back to menu">
           <BackIcon />
         </button>
+        <span className="play-outcome">{OUTCOME_LABELS[settings.outcome]}</span>
         <button
           className="icon-button ghost"
           onClick={() => setShowRules(true)}
@@ -29,9 +45,7 @@ export function PlayScreen({ mode, settings, onExit }: PlayScreenProps) {
         </button>
       </div>
 
-      {mode.id === 'touch-pick' && (
-        <TouchPick soundEnabled={settings.soundEnabled} hapticsEnabled={settings.hapticsEnabled} />
-      )}
+      <Game settings={settings} hint={<Hint />} />
 
       {showRules && (
         <div className="sheet-backdrop" onClick={() => setShowRules(false)}>

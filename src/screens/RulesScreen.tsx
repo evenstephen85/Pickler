@@ -23,6 +23,10 @@ export function RulesScreen({ onDone }: RulesScreenProps) {
           <li>Everybody gets a finger on the screen.</li>
           <li>Hold still and let it choose.</li>
         </ol>
+        <p>
+          No touchscreen? On a computer everybody holds down their own key
+          instead — one key each, held down, exactly like a finger.
+        </p>
         <p className="rules-note">
           Every game is fair — every finger has exactly the same chance, every
           time.

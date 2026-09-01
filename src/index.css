@@ -419,6 +419,99 @@ body {
   font-weight: 800;
 }
 
+/* ── Segmented controls ───────────────────────────────────────────────────── */
+
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.segment {
+  flex: 1;
+  padding: 11px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segment.selected {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.segmented.compact {
+  flex: none;
+  width: 168px;
+}
+
+.team-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* ── Play surface extras ──────────────────────────────────────────────────── */
+
+.play-outcome {
+  align-self: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.twine-layer,
+.spinner-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ring-label {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--ring-color);
+}
+
+.ring {
+  display: grid;
+  place-items: center;
+}
+
+.ring.dimmed {
+  opacity: 0.28;
+  box-shadow: none;
+  transition: opacity 220ms ease;
+}
+
+.team-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 16px;
+  max-width: 92vw;
+}
+
+.team-chip {
+  font-size: 19px;
+  font-weight: 700;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .splash-rings span,
   .mode-hint,

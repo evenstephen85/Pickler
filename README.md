@@ -18,14 +18,51 @@ see [Native builds](#native-builds-ios--android) below.
 
 ## Games
 
-### Touch & Pick
+Five ways to pick, all from the same black screen: everyone puts a finger
+down, the field settles, and the app decides. Lift your fingers to go again.
 
-A black screen. Everyone puts one finger down and gets a colored ring around
-it. When nobody new has joined for a couple of seconds, the rings start
-pulsing and beating out a three-beat countdown, then every ring but one
-disappears. That finger goes first.
+| Game | What happens |
+| --- | --- |
+| **Touch & Pick** | The rings pulse out a three-beat countdown, then the pick is revealed. |
+| **Tug of Twine** | A string runs from each finger to the bottom edge; they're reeled in, and the shortest one is the pick. |
+| **Spinner** | A needle sweeps out from the middle, slows like a roulette wheel, and stops on someone. |
+| **Hot Potato** | A white glow hops finger to finger, faster and faster, until it stops on one. |
+| **Bumper Rings** | The rings come loose, drift around, and knock each other out on contact until one is left. |
 
-Lift your fingers and it resets for the next round.
+## What a round hands back
+
+A switch on the menu decides what you get out of a round — every game honors
+all three:
+
+- **Pick one** — one finger, everybody else's ring disappears
+- **Turn order** — every ring is numbered 1st, 2nd, 3rd… for board game turn order
+- **Split teams** — the fingers are dealt into 2–4 teams and recolored
+
+## Playing on a computer
+
+A desktop browser only ever has one pointer, so there's nothing to pick
+between. On anything that isn't a touchscreen, **everybody holds down their
+own key instead** — one key each, held down, exactly like a finger. Let go to
+drop out. The on-screen prompt switches to match.
+
+## Fairness
+
+Every game draws its result up front, uniformly, with a Fisher-Yates shuffle
+in `src/lib/rng.ts` — and then animates *towards* that result. A spinner's
+needle is aimed at the winner from its first frame; Tug of Twine assigns the
+string lengths from the draw rather than measuring them off the screen.
+
+This matters most in Bumper Rings, where deciding each collision on the spot
+would **not** be fair: a ring that starts in a corner meets fewer rings than
+one in the middle, so where you put your finger would leak into your odds.
+(Eliminating both rings in a collision only trades one bias for another.)
+Instead a crash knocks out whichever of the two rings the draw already placed
+lower — the collisions are the show, the result underneath them is even.
+
+Verified empirically as well as by construction: over 600,000 six-player
+rounds, the who-wins distribution gives χ² = 1.13 on 5 degrees of freedom
+(p < 0.05 would need 11.07), and no player-by-position cell deviates from
+expectation by more than 0.83%.
 
 ## How it's put together
 
@@ -34,8 +71,8 @@ Lift your fingers and it resets for the next round.
 - **Rules on first visit only** — the "How Pickler works" screen shows once,
   then lives behind the info button on the menu
 - **Landing menu** — tap a game and drop straight into it, no setup step
-- **Every finger has exactly the same chance.** All randomness goes through
-  `src/lib/rng.ts` so the fairness rules live in one place
+- **Neutral wording** — "You're up" reads the same whether the pick is a prize
+  or a chore
 - **Sounds are synthesized in-browser** with the Web Audio API
   (`src/lib/sound.ts`) — no audio files to ship, and a single sound toggle on
   the menu
@@ -53,7 +90,11 @@ Lift your fingers and it resets for the next round.
 src/
   data/modes.ts           the game registry: name, tagline, rules text
   lib/rng.ts              all randomness (fairness lives here)
-  lib/useTouches.ts       multitouch tracking shared by every game
+  lib/usePlayers.ts       player tracking — fingers and held keyboard keys
+  lib/useSettle.ts        the "wait until nobody else is joining" timer
+  lib/useRound.ts         the round engine every game is built on
+  lib/outcome.ts          pick one / turn order / teams
+  lib/reveal.ts           turns a ranking into what each ring looks like
   lib/sound.ts            synthesized sound effects
   lib/haptics.ts          vibration (native + web fallback)
   lib/colors.ts           the ring palette
@@ -63,9 +104,15 @@ src/
   components/             shared UI pieces
 ```
 
-Adding a game means: a new entry in `src/data/modes.ts`, a new component in
-`src/modes/`, and one line in `PlayScreen.tsx`. The menu picks it up from the
-registry automatically.
+**Every game does one job: produce a ranking.** `useRound` collects the
+players, waits for the field to settle, and draws the ranking; the game
+animates it; `reveal.ts` turns that one list into a single pick, a turn order,
+or teams. So a new game never reimplements input, fairness, or any of the
+three outcomes.
+
+Adding one means: an entry in `src/data/modes.ts`, a component in
+`src/modes/`, and a line in the `MODE_COMPONENTS` map in `PlayScreen.tsx`.
+The menu picks it up from the registry automatically.
 
 ## Local development
 

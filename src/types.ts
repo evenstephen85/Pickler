@@ -12,7 +12,7 @@ export type Touch = {
   downAt: number;
 };
 
-export type ModeId = 'touch-pick';
+export type ModeId = 'touch-pick' | 'twine' | 'bumper' | 'spinner' | 'potato';
 
 export type Mode = {
   id: ModeId;
@@ -25,6 +25,10 @@ export type Mode = {
 export type Settings = {
   soundEnabled: boolean;
   hapticsEnabled: boolean;
+  /** What a round hands back: one pick, a full turn order, or teams. */
+  outcome: 'one' | 'order' | 'teams';
+  /** How many teams to split into when outcome is 'teams'. */
+  teamCount: number;
   /** Set once the player has seen the rules screen on first launch. */
   onboarded: boolean;
 };

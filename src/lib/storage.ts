@@ -7,6 +7,8 @@ const KEYS = {
 export const defaultSettings: Settings = {
   soundEnabled: true,
   hapticsEnabled: true,
+  outcome: 'one',
+  teamCount: 2,
   onboarded: false,
 };
 

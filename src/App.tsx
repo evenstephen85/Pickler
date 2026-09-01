@@ -82,7 +82,7 @@ function App() {
           settings={settings}
           onPick={handlePickMode}
           onShowRules={() => setScreen('rules')}
-          onToggleSound={() => setSettings((prev) => ({ ...prev, soundEnabled: !prev.soundEnabled }))}
+          onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
         />
       )}
       {screen === 'play' && mode && (
