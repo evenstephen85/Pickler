@@ -29,7 +29,12 @@ export function RulesScreen({ onDone }: RulesScreenProps) {
         </p>
         <p className="rules-note">
           Every game is fair — every finger has exactly the same chance, every
-          time.
+          time. The result stays up until you tap “Go again”, so you can lift
+          your hands and still read it.
+        </p>
+        <p className="rules-note">
+          On an iPhone, the Ring/Silent switch mutes the sounds even with the
+          volume up — that’s Safari, not the app.
         </p>
       </div>
 

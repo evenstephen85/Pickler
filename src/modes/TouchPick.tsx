@@ -21,7 +21,7 @@ export function TouchPick({ settings, hint }: ModeProps) {
     hapticsEnabled: settings.hapticsEnabled,
     onStart: () => setBeat(COUNTDOWN_BEATS),
   });
-  const { phase, ranking, touches, beep, buzz, finish } = round;
+  const { phase, ranking, shown, beep, buzz, finish } = round;
 
   // One beat at a time, so a finger lifted mid-count can still abort the round.
   useEffect(() => {
@@ -39,7 +39,7 @@ export function TouchPick({ settings, hint }: ModeProps) {
   }, [phase, beat, beep, buzz, finish]);
 
   const done = phase === 'done';
-  const visible = done ? visibleAfterPick(touches, settings.outcome, ranking) : touches;
+  const visible = done ? visibleAfterPick(shown, settings.outcome, ranking) : shown;
 
   return (
     <div className="mode-surface" {...round.handlers}>
@@ -47,6 +47,7 @@ export function TouchPick({ settings, hint }: ModeProps) {
         <Ring
           key={touch.id}
           touch={touch}
+          label={touch.label}
           pulsing={phase === 'running'}
           {...(done ? revealFor(touch, { outcome: settings.outcome, ranking, teamCount: settings.teamCount }) : {})}
         />

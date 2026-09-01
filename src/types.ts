@@ -10,9 +10,11 @@ export type Touch = {
   colorIndex: number;
   /** When the finger went down, for ordering and "who was first" tie-breaks. */
   downAt: number;
+  /** The key a desktop player is holding, drawn inside their ring. */
+  label?: string;
 };
 
-export type ModeId = 'touch-pick' | 'twine' | 'bumper' | 'spinner' | 'potato';
+export type ModeId = 'touch-pick' | 'straw' | 'bumper' | 'spinner' | 'potato' | 'dvd' | 'dice';
 
 export type Mode = {
   id: ModeId;

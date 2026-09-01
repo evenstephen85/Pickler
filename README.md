@@ -24,10 +24,17 @@ down, the field settles, and the app decides. Lift your fingers to go again.
 | Game | What happens |
 | --- | --- |
 | **Touch & Pick** | The rings pulse out a three-beat countdown, then the pick is revealed. |
-| **Tug of Twine** | A string runs from each finger to the bottom edge; they're reeled in, and the shortest one is the pick. |
+| **Short Straw** | Everyone draws a straw from the bundle in the middle; they come out in fits and starts, and the short one is the pick. |
 | **Spinner** | A needle sweeps out from the middle, slows like a roulette wheel, and stops on someone. |
-| **Hot Potato** | A white glow hops finger to finger, faster and faster, until it stops on one. |
-| **Bumper Rings** | The rings come loose, drift around, and knock each other out on contact until one is left. |
+| **Hot Potato** | A glowing potato flies finger to finger, faster and faster, until it stops on one. |
+| **Bumper Rings** | Your ring stays on your finger and you drive it — slide into someone and you might knock them out. |
+| **Corner Bounce** | The rings take off around the walls like the old DVD screensaver; first to nail a corner is the pick. |
+| **Dice Roll** | A die tumbles out of every finger. Highest roll goes first. |
+
+Several games do something extra when the outcome is **teams**: Spinner sends
+out one needle per member of the smaller team, Hot Potato flies one potato per
+team in that team's color, and Short Straw re-ties the straws into one knot
+per team.
 
 ## What a round hands back
 
@@ -38,6 +45,10 @@ all three:
 - **Turn order** — every ring is numbered 1st, 2nd, 3rd… for board game turn order
 - **Split teams** — the fingers are dealt into 2–4 teams and recolored
 
+**A result stays on screen until somebody taps "Go again."** Lifting your
+fingers doesn't clear it — the field is snapshotted the moment the result
+lands, so everyone can take their hands away and still read the turn order.
+
 ## Playing on a computer
 
 A desktop browser only ever has one pointer, so there's nothing to pick
@@ -45,19 +56,27 @@ between. On anything that isn't a touchscreen, **everybody holds down their
 own key instead** — one key each, held down, exactly like a finger. Let go to
 drop out. The on-screen prompt switches to match.
 
+Each ring shows the key that's holding it, and the rings are laid out in
+roughly the **same arrangement as the keys on the keyboard** — the people on
+Q, W and E get three rings across the top, in that order — so nobody has to
+remember which color they are. See `src/lib/keyboard.ts`.
+
 ## Fairness
 
 Every game draws its result up front, uniformly, with a Fisher-Yates shuffle
-in `src/lib/rng.ts` — and then animates *towards* that result. A spinner's
-needle is aimed at the winner from its first frame; Tug of Twine assigns the
-string lengths from the draw rather than measuring them off the screen.
+in `src/lib/rng.ts` — and then animates *towards* that result. The spinner's
+needle is aimed at its target from the first frame; Short Straw assigns the
+straw lengths from the draw rather than measuring them off the screen; Dice
+Roll hands out the faces by place, so there is never a tie at the top; Corner
+Bounce plans genuine constant-speed flights whose corners simply arrive in
+draw order (see `src/lib/dvd.ts`).
 
-This matters most in Bumper Rings, where deciding each collision on the spot
-would **not** be fair: a ring that starts in a corner meets fewer rings than
-one in the middle, so where you put your finger would leak into your odds.
-(Eliminating both rings in a collision only trades one bias for another.)
-Instead a crash knocks out whichever of the two rings the draw already placed
-lower — the collisions are the show, the result underneath them is even.
+This matters most in Bumper Rings, where deciding each crash on the spot would
+**not** be fair: a player who charges around meets more rings than one who
+sits still, so hustle would leak into the odds. (Eliminating both rings in a
+collision only trades one bias for another.) Instead a crash that lands knocks
+out whichever of the two rings the draw already placed lower — the driving and
+the crashing are real, the result underneath them is even.
 
 Verified empirically as well as by construction: over 600,000 six-player
 rounds, the who-wins distribution gives χ² = 1.13 on 5 degrees of freedom
@@ -91,6 +110,8 @@ src/
   data/modes.ts           the game registry: name, tagline, rules text
   lib/rng.ts              all randomness (fairness lives here)
   lib/usePlayers.ts       player tracking — fingers and held keyboard keys
+  lib/keyboard.ts         where each key sits, for the desktop layout
+  lib/dvd.ts              the bouncing maths behind Corner Bounce
   lib/useSettle.ts        the "wait until nobody else is joining" timer
   lib/useRound.ts         the round engine every game is built on
   lib/outcome.ts          pick one / turn order / teams

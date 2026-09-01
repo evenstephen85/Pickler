@@ -28,6 +28,15 @@ type Options = {
 export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
   const [phase, setPhase] = useState<RoundPhase>('gathering');
   const [ranking, setRanking] = useState<Ranking>([]);
+  /**
+   * The field as it stood the moment the result landed. Lifting a finger
+   * removes it from the live list, which used to take the result off the
+   * screen with it — so once a round is done the rings are drawn from this
+   * snapshot instead, and everyone can take their hands away and still read
+   * the turn order.
+   */
+  const [frozen, setFrozen] = useState<Ranking>([]);
+  const phaseRef = useRef<RoundPhase>('gathering');
 
   const beep = useCallback(
     (fn: () => void) => {
@@ -52,7 +61,7 @@ export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
 
   const onRemove = useCallback(
     (_touch: Touch, all: Touch[]) => {
-      if (all.length > 0) beep(playLeave);
+      if (all.length > 0 && phaseRef.current === 'gathering') beep(playLeave);
       // Someone bailed out mid-round. Abort rather than pick from a field that
       // no longer exists — handled here, at the lift, so the games' timers stay
       // pure timers.
@@ -71,6 +80,10 @@ export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
     touchesRef.current = touches;
   }, [touches]);
 
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
   const { ready } = useSettle(touches, phase === 'gathering', () => {
     const drawn = shuffled(touchesRef.current);
     setRanking(drawn);
@@ -79,31 +92,33 @@ export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
   });
 
   /** A game calls this when its animation has finished playing out the draw. */
-  const finish = useCallback(() => {
-    setPhase((current) => {
-      if (current !== 'running') return current;
-      beep(playWinner);
-      buzz(hapticWinner);
-      return 'done';
-    });
-  }, [beep, buzz]);
+  const finish = useCallback(
+    (positions?: Ranking) => {
+      setPhase((current) => {
+        if (current !== 'running') return current;
+        // Prefer the positions the game was actually drawing (Bumper Rings has
+        // moved them a long way from the fingers), and fall back to the live
+        // field for the games that leave the rings where they were put.
+        setFrozen(positions ?? touchesRef.current);
+        beep(playWinner);
+        buzz(hapticWinner);
+        return 'done';
+      });
+    },
+    [beep, buzz],
+  );
 
   const reset = useCallback(() => {
     clear();
     setRanking([]);
+    setFrozen([]);
     setPhase('gathering');
   }, [clear]);
 
-  // Everyone has let go after a result: reset for the next round.
-  useEffect(() => {
-    if (phase === 'done' && touches.length === 0) {
-      const timer = setTimeout(() => {
-        setRanking([]);
-        setPhase('gathering');
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [phase, touches.length]);
+  // A finished round stays on screen until somebody asks for another one.
+  // There is deliberately no timer here: reading a turn order off the rings
+  // takes as long as it takes.
+  const shown = phase === 'done' ? frozen : touches;
 
-  return { phase, ranking, touches, ready, handlers, beep, buzz, finish, reset };
+  return { phase, ranking, touches, shown, ready, handlers, beep, buzz, finish, reset };
 }

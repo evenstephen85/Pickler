@@ -5,92 +5,117 @@ import { Result } from '../components/Result';
 import { colorAt } from '../lib/colors';
 import { useRound } from '../lib/useRound';
 import { revealFor, visibleAfterPick } from '../lib/reveal';
+import { teamsFrom } from '../lib/outcome';
 import { hapticLight } from '../lib/haptics';
 import { playTick } from '../lib/sound';
 
 const SPIN_MS = 3000;
-/** Full turns before the needle starts hunting for its target. */
+/** Full turns before a needle starts hunting for its target. */
 const TURNS = 4;
+/** Each extra needle takes a little longer, so they land one after another. */
+const STAGGER_MS = 500;
+
+type Needle = { targetId: number; color: string; angle: number };
 
 /**
- * Spinner. A needle sweeps out from the middle of the screen, slows like a
- * roulette wheel, and comes to rest pointing at one finger.
+ * Spinner. Needles sweep out from the middle of the screen, slow like a
+ * roulette wheel, and come to rest pointing at a finger.
  *
- * It is aimed at the drawn winner from the first frame — the deceleration is
- * fitted to land there — so where people put their fingers never changes
- * anyone's odds.
+ * In teams mode there is one needle per member of the *smallest* team, all in
+ * that team's color: name the short team and everyone else knows where they
+ * stand. Each needle is aimed at its target from the first frame — the
+ * deceleration is fitted to land there — so where people put their fingers
+ * never changes anyone's odds.
  */
 export function Spinner({ settings, hint }: ModeProps) {
-  const [angle, setAngle] = useState(-Math.PI / 2);
-  const [target, setTarget] = useState<number | null>(null);
-  // Fixed when the round starts rather than read per frame — a rotation
-  // mid-spin is not worth chasing, and a stable centre keeps the spin effect
-  // from restarting on every render.
+  const [needles, setNeedles] = useState<Needle[]>([]);
   const [centre, setCentre] = useState(() => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }));
   const round = useRound({
     soundEnabled: settings.soundEnabled,
     hapticsEnabled: settings.hapticsEnabled,
     onStart: (ranking) => {
-      setTarget(ranking[0]?.id ?? null);
       setCentre({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+      if (settings.outcome === 'teams') {
+        const teams = teamsFrom(ranking, settings.teamCount);
+        // The smallest team, and the earliest of them on a tie.
+        const smallest = teams.reduce((best, team) => (team.length < best.length ? team : best), teams[0]);
+        const color = colorAt(smallest[0].colorIndex);
+        setNeedles(smallest.map((t) => ({ targetId: t.id, color, angle: -Math.PI / 2 })));
+      } else {
+        setNeedles([{ targetId: ranking[0].id, color: '#ffffff', angle: -Math.PI / 2 }]);
+      }
     },
   });
-  const { phase, ranking, touches, beep, buzz, finish } = round;
+  const { phase, ranking, shown, beep, buzz, finish } = round;
 
   useEffect(() => {
-    if (phase !== 'running' || target === null) return;
-    const winner = touches.find((t) => t.id === target);
-    if (!winner) return;
+    if (phase !== 'running' || needles.length === 0) return;
 
-    const from = angle;
-    const bearing = Math.atan2(winner.y - centre.y, winner.x - centre.x);
-    // Wind forward a whole number of turns, then stop on the winner's bearing.
-    const to = from + TURNS * Math.PI * 2 + ((bearing - from) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const spins = needles.map((needle, i) => {
+      const target = ranking.find((t) => t.id === needle.targetId);
+      const bearing = target
+        ? Math.atan2(target.y - centre.y, target.x - centre.x)
+        : -Math.PI / 2;
+      const from = -Math.PI / 2;
+      // Wind forward whole turns, then stop on the target's bearing.
+      const sweep = (((bearing - from) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      return { from, to: from + TURNS * Math.PI * 2 + sweep, duration: SPIN_MS + i * STAGGER_MS };
+    });
 
     const started = performance.now();
+    const total = Math.max(...spins.map((s) => s.duration));
     let frame = 0;
     let lastTick = -1;
 
     const step = (now: number) => {
-      const t = Math.min(1, (now - started) / SPIN_MS);
-      const eased = 1 - (1 - t) ** 4;
-      const next = from + (to - from) * eased;
-      setAngle(next);
-      // One click per eighth-turn, which naturally slows with the needle.
-      const tickIndex = Math.floor(next / (Math.PI / 4));
+      const elapsed = now - started;
+      const next = spins.map((spin, i) => {
+        const t = Math.min(1, elapsed / spin.duration);
+        const eased = 1 - (1 - t) ** 4;
+        return { ...needles[i], angle: spin.from + (spin.to - spin.from) * eased };
+      });
+      setNeedles(next);
+
+      // One click per eighth-turn of the lead needle, which naturally slows
+      // down with it.
+      const tickIndex = Math.floor(next[0].angle / (Math.PI / 4));
       if (tickIndex !== lastTick) {
         lastTick = tickIndex;
         beep(() => playTick(3));
         buzz(hapticLight);
       }
-      if (t < 1) frame = requestAnimationFrame(step);
+
+      if (elapsed < total) frame = requestAnimationFrame(step);
       else finish();
     };
 
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-    // `angle` is the starting point, read once; including it would restart the
-    // spin on every frame.
+    // `needles` carries the live angles, which change every frame; the spin is
+    // set up once per round from the targets fixed at the start.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, target, centre, beep, buzz, finish]);
+  }, [phase, ranking, centre, beep, buzz, finish]);
 
   const done = phase === 'done';
-  const visible = done ? visibleAfterPick(touches, settings.outcome, ranking) : touches;
+  const visible = done ? visibleAfterPick(shown, settings.outcome, ranking) : shown;
   const reach = Math.min(window.innerWidth, window.innerHeight) * 0.42;
 
   return (
     <div className="mode-surface" {...round.handlers}>
       {phase !== 'gathering' && (
         <svg className="spinner-layer" aria-hidden="true">
-          <line
-            x1={centre.x}
-            y1={centre.y}
-            x2={centre.x + Math.cos(angle) * reach}
-            y2={centre.y + Math.sin(angle) * reach}
-            stroke={done && ranking[0] ? colorAt(ranking[0].colorIndex) : '#ffffff'}
-            strokeWidth={5}
-            strokeLinecap="round"
-          />
+          {needles.map((needle, i) => (
+            <line
+              key={i}
+              x1={centre.x}
+              y1={centre.y}
+              x2={centre.x + Math.cos(needle.angle) * reach}
+              y2={centre.y + Math.sin(needle.angle) * reach}
+              stroke={needle.color}
+              strokeWidth={5}
+              strokeLinecap="round"
+            />
+          ))}
           <circle cx={centre.x} cy={centre.y} r={9} fill="#ffffff" />
         </svg>
       )}
@@ -99,6 +124,7 @@ export function Spinner({ settings, hint }: ModeProps) {
         <Ring
           key={touch.id}
           touch={touch}
+          label={touch.label}
           {...(done ? revealFor(touch, { outcome: settings.outcome, ranking, teamCount: settings.teamCount }) : {})}
         />
       ))}

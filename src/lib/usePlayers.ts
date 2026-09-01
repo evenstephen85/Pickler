@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { Touch } from '../types';
 import { PLAYER_COLORS } from './colors';
+import { keyLabel, keySpot } from './keyboard';
 
 type Options = {
   /** While false, new players are ignored — used once a pick is under way. */
@@ -23,19 +24,28 @@ const RESERVED_KEYS = new Set([
   'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight', 'CapsLock',
 ]);
 
+/** Keeps a ring clear of the screen edges when it is placed for a player. */
+const EDGE_MARGIN = 84;
+
 /**
- * Where a keyboard player's ring sits. Fingers land wherever they land, but a
- * key press carries no position, so the ten color slots are dealt around a
- * circle — stable, evenly spaced, and never overlapping.
+ * Where a keyboard player's ring sits: the same spot on screen that their key
+ * occupies on the keyboard, so the people holding Q, W and E see three rings
+ * across the top in that order. A key we don't have a position for falls back
+ * to a slot on a circle.
  */
-function slotPosition(colorIndex: number): { x: number; y: number } {
-  const slots = PLAYER_COLORS.length;
-  const angle = (colorIndex / slots) * Math.PI * 2 - Math.PI / 2;
-  const radius = Math.min(window.innerWidth, window.innerHeight) * 0.32;
-  return {
-    x: window.innerWidth / 2 + Math.cos(angle) * radius,
-    y: window.innerHeight / 2 + Math.sin(angle) * radius,
-  };
+function keyPosition(code: string, colorIndex: number): { x: number; y: number } {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const spot = keySpot(code);
+  if (spot) {
+    return {
+      x: EDGE_MARGIN + spot.nx * (w - EDGE_MARGIN * 2),
+      y: EDGE_MARGIN + spot.ny * (h - EDGE_MARGIN * 2),
+    };
+  }
+  const angle = (colorIndex / PLAYER_COLORS.length) * Math.PI * 2 - Math.PI / 2;
+  const radius = Math.min(w, h) * 0.32;
+  return { x: w / 2 + Math.cos(angle) * radius, y: h / 2 + Math.sin(angle) * radius };
 }
 
 /**
@@ -54,15 +64,22 @@ export function usePlayers({ accepting, onAdd, onRemove }: Options) {
   const [touches, setTouches] = useState<Touch[]>([]);
 
   const add = useCallback(
-    (id: number, x: number, y: number, positionFromSlot: boolean) => {
+    (id: number, x: number, y: number, key?: string) => {
       setTouches((prev) => {
         if (prev.some((t) => t.id === id)) return prev;
         if (prev.length >= PLAYER_COLORS.length) return prev;
         const used = new Set(prev.map((t) => t.colorIndex));
         let colorIndex = 0;
         while (used.has(colorIndex)) colorIndex++;
-        const at = positionFromSlot ? slotPosition(colorIndex) : { x, y };
-        const touch: Touch = { id, x: at.x, y: at.y, colorIndex, downAt: performance.now() };
+        const at = key ? keyPosition(key, colorIndex) : { x, y };
+        const touch: Touch = {
+          id,
+          x: at.x,
+          y: at.y,
+          colorIndex,
+          downAt: performance.now(),
+          label: key ? keyLabel(key) : undefined,
+        };
         const next = [...prev, touch];
         onAdd?.(touch, next);
         return next;
@@ -88,7 +105,7 @@ export function usePlayers({ accepting, onAdd, onRemove }: Options) {
     (e: ReactPointerEvent<HTMLElement>) => {
       if (!accepting) return;
       e.currentTarget.setPointerCapture?.(e.pointerId);
-      add(e.pointerId, e.clientX, e.clientY, false);
+      add(e.pointerId, e.clientX, e.clientY);
     },
     [accepting, add],
   );
@@ -119,7 +136,7 @@ export function usePlayers({ accepting, onAdd, onRemove }: Options) {
       if (RESERVED_KEYS.has(e.code)) return;
       if (!accepting) return;
       e.preventDefault();
-      add(idFor(e.code), 0, 0, true);
+      add(idFor(e.code), 0, 0, e.code);
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (RESERVED_KEYS.has(e.code)) return;

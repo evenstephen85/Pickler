@@ -1,6 +1,7 @@
 import type { Mode, ModeId, Settings } from '../types';
 import { MODES } from '../data/modes';
 import { InfoIcon, SoundOffIcon, SoundOnIcon } from '../components/icons';
+import { ModePreview } from '../components/ModePreview';
 import { MAX_TEAMS, MIN_TEAMS, OUTCOME_LABELS } from '../lib/outcome';
 import type { Outcome } from '../lib/outcome';
 
@@ -77,9 +78,9 @@ export function MenuScreen({ settings, onPick, onShowRules, onChange }: MenuScre
 
 function ModeCard({ mode, onPick }: { mode: Mode; onPick: (id: ModeId) => void }) {
   return (
-    <button className="mode-card" onClick={() => onPick(mode.id)}>
+    <button className="mode-card" onClick={() => onPick(mode.id)} title={mode.tagline}>
+      <ModePreview mode={mode.id} />
       <span className="mode-card-name">{mode.name}</span>
-      <span className="mode-card-tagline">{mode.tagline}</span>
     </button>
   );
 }

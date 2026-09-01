@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { Mode, Settings } from '../types';
 import { TouchPick } from '../modes/TouchPick';
-import { Twine } from '../modes/Twine';
+import { Straw } from '../modes/Straw';
 import { Spinner } from '../modes/Spinner';
 import { HotPotato } from '../modes/HotPotato';
 import { Bumper } from '../modes/Bumper';
+import { Dvd } from '../modes/Dvd';
+import { Dice } from '../modes/Dice';
 import { Hint } from '../components/Hint';
 import { BackIcon, InfoIcon } from '../components/icons';
 import { OUTCOME_LABELS } from '../lib/outcome';
@@ -17,10 +19,12 @@ interface PlayScreenProps {
 
 const MODE_COMPONENTS = {
   'touch-pick': TouchPick,
-  twine: Twine,
+  straw: Straw,
   spinner: Spinner,
   potato: HotPotato,
   bumper: Bumper,
+  dvd: Dvd,
+  dice: Dice,
 } as const;
 
 export function PlayScreen({ mode, settings, onExit }: PlayScreenProps) {

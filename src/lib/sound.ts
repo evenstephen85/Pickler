@@ -7,30 +7,51 @@ function getCtx(): AudioContext | null {
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioCtx) return null;
   if (!ctx) ctx = new AudioCtx();
-  if (ctx.state === 'suspended') void ctx.resume();
   return ctx;
 }
 
 /**
- * A context created before the first user gesture comes back suspended, and a
- * suspended context's clock is frozen at 0. Anything scheduled against that
- * frozen clock is already in the past by the time the browser resumes it, so it
- * is thrown away silently. Nothing is scheduled unless the clock is running.
+ * A suspended context's clock is frozen at 0, and anything scheduled against
+ * that frozen clock is already in the past when the browser resumes it — so it
+ * is thrown away silently.
+ *
+ * resume() is asynchronous, which used to lose the first sound of a session:
+ * the tap that unlocked audio also asked for a sound, and that sound was
+ * scheduled a few milliseconds before the context actually started running.
+ * Now a sound asked for during that window waits for the resume to land
+ * instead of being dropped.
  */
-function activeCtx(): AudioContext | null {
+function withCtx(run: (c: AudioContext, startTime: number) => void) {
   const c = getCtx();
-  return c && c.state === 'running' ? c : null;
+  if (!c) return;
+  // A hair of lead time so a note is never scheduled fractionally in the past.
+  if (c.state === 'running') {
+    run(c, c.currentTime + 0.02);
+    return;
+  }
+  void c
+    .resume()
+    .then(() => {
+      if (c.state === 'running') run(c, c.currentTime + 0.02);
+    })
+    .catch(() => {
+      // Still locked — the browser wants a gesture it hasn't seen yet.
+    });
 }
 
-/** A hair of lead time so a note is never scheduled fractionally in the past. */
-function at(c: AudioContext): number {
-  return c.currentTime + 0.02;
-}
-
-/** Must be called from a user-gesture handler (tap) to unlock audio on iOS/Safari. */
+/**
+ * Must be called from a user-gesture handler (tap) to unlock audio on
+ * iOS/Safari. Playing a one-sample silent buffer is what actually flips the
+ * context to running; resume() alone is not always enough on iOS.
+ *
+ * Worth knowing: on an iPhone this cannot beat the physical Ring/Silent
+ * switch. Web Audio in Safari is muted by that switch no matter how high the
+ * volume is, and a web page has no way to opt out — only a native build can.
+ */
 export function unlockAudio() {
   const c = getCtx();
   if (!c) return;
+  void c.resume().catch(() => {});
   const buffer = c.createBuffer(1, 1, 22050);
   const source = c.createBufferSource();
   source.buffer = buffer;
@@ -38,14 +59,18 @@ export function unlockAudio() {
   source.start(0);
 }
 
+/** True once the context is genuinely running — used to warn if it never is. */
+export function audioIsRunning(): boolean {
+  return ctx?.state === 'running';
+}
+
 function tone(
+  c: AudioContext,
   frequency: number,
   startTime: number,
   duration: number,
   options: { type?: OscillatorType; gain?: number; sweepTo?: number } = {},
 ) {
-  const c = activeCtx();
-  if (!c) return;
   const { type = 'sine', gain = 0.25, sweepTo } = options;
   const osc = c.createOscillator();
   const gainNode = c.createGain();
@@ -63,46 +88,34 @@ function tone(
 
 /** A finger arrives. Pitch climbs with the head count so the group hears it fill up. */
 export function playJoin(playerCount: number) {
-  const c = activeCtx();
-  if (!c) return;
-  const step = Math.min(playerCount, 10);
-  tone(330 + step * 45, at(c), 0.12, { type: 'triangle', gain: 0.18 });
+  withCtx((c, t) => tone(c, 330 + Math.min(playerCount, 10) * 45, t, 0.12, { type: 'triangle', gain: 0.18 }));
 }
 
 /** A finger leaves before the pick. */
 export function playLeave() {
-  const c = activeCtx();
-  if (!c) return;
-  tone(300, at(c), 0.12, { type: 'triangle', gain: 0.14, sweepTo: 180 });
+  withCtx((c, t) => tone(c, 300, t, 0.12, { type: 'triangle', gain: 0.14, sweepTo: 180 }));
 }
 
-/** One beat of the countdown. `remaining` counts down to 0. */
+/** One beat of a countdown or one click of a spinner. */
 export function playTick(remaining: number) {
-  const c = activeCtx();
-  if (!c) return;
-  tone(520 + (3 - remaining) * 90, at(c), 0.09, { type: 'square', gain: 0.16 });
+  withCtx((c, t) => tone(c, 520 + (3 - remaining) * 90, t, 0.09, { type: 'square', gain: 0.16 }));
 }
 
-/** The winner is revealed. */
+/** The result is revealed. */
 export function playWinner() {
-  const c = activeCtx();
-  if (!c) return;
-  const t = at(c);
-  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-    tone(f, t + i * 0.09, 0.35, { type: 'triangle', gain: 0.22 });
+  withCtx((c, t) => {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      tone(c, f, t + i * 0.09, 0.35, { type: 'triangle', gain: 0.22 });
+    });
   });
 }
 
 /** A player is knocked out of a multi-round mode. */
 export function playEliminate() {
-  const c = activeCtx();
-  if (!c) return;
-  tone(400, at(c), 0.22, { type: 'sawtooth', gain: 0.16, sweepTo: 120 });
+  withCtx((c, t) => tone(c, 400, t, 0.22, { type: 'sawtooth', gain: 0.16, sweepTo: 120 }));
 }
 
 /** Generic UI tap for menu buttons. */
 export function playBoop() {
-  const c = activeCtx();
-  if (!c) return;
-  tone(440, at(c), 0.06, { type: 'sine', gain: 0.12 });
+  withCtx((c, t) => tone(c, 440, t, 0.06, { type: 'sine', gain: 0.12 }));
 }
