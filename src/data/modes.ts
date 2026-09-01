@@ -74,6 +74,18 @@ export const MODES: Mode[] = [
       'There is never a tie at the top — the places are decided first, then the faces are handed out to match.',
     ],
   },
+  {
+    id: 'keno',
+    name: 'Keno Board',
+    tagline: 'Claim a number. Watch it get called.',
+    rules: [
+      'Everybody taps a number on the board to claim it — then take your hand back.',
+      'Tap your number again if you want to give it up.',
+      'Once nobody has changed their mind for a moment, the draw starts.',
+      'A highlight runs over the board, slowing down, and stops on the number that was drawn.',
+      'For a turn order or teams, it keeps calling numbers until everyone has been drawn.',
+    ],
+  },
 ];
 
 export function modeById(id: string): Mode | undefined {

@@ -30,6 +30,14 @@ down, the field settles, and the app decides. Lift your fingers to go again.
 | **Bumper Rings** | Your ring stays on your finger and you drive it — slide into someone and you might knock them out. |
 | **Corner Bounce** | The rings take off around the walls like the old DVD screensaver; first to nail a corner is the pick. |
 | **Dice Roll** | A die tumbles out of every finger. Highest roll goes first. |
+| **Keno Board** | Claim a number on a 40-number board, then watch a highlight run over the grid and stop on the one that's drawn. |
+
+**Keno Board is the one game you don't hold a finger down for**: you tap your
+number and take your hand back, the way you'd mark a keno card, and tap it
+again to give it up. That's why it drives the draw off its own claims
+(`lib/useDraw.ts`) rather than through the held-finger round engine. The board
+is 4 numbers across on a portrait phone and the usual 10 across on a wide
+screen.
 
 Several games do something extra when the outcome is **teams**: Spinner sends
 out one needle per member of the smaller team, Hot Potato flies one potato per
@@ -113,7 +121,8 @@ src/
   lib/keyboard.ts         where each key sits, for the desktop layout
   lib/dvd.ts              the bouncing maths behind Corner Bounce
   lib/useSettle.ts        the "wait until nobody else is joining" timer
-  lib/useRound.ts         the round engine every game is built on
+  lib/useDraw.ts          the draw itself: ranking, phase, frozen result
+  lib/useRound.ts         useDraw + held fingers, for the games that use them
   lib/outcome.ts          pick one / turn order / teams
   lib/reveal.ts           turns a ranking into what each ring looks like
   lib/sound.ts            synthesized sound effects
@@ -125,9 +134,9 @@ src/
   components/             shared UI pieces
 ```
 
-**Every game does one job: produce a ranking.** `useRound` collects the
-players, waits for the field to settle, and draws the ranking; the game
-animates it; `reveal.ts` turns that one list into a single pick, a turn order,
+**Every game does one job: produce a ranking.** `useDraw` holds the draw and
+the phase; `useRound` adds held-finger collection on top of it for the games
+that work that way (Keno brings its own); the game animates the result; `reveal.ts` turns that one list into a single pick, a turn order,
 or teams. So a new game never reimplements input, fairness, or any of the
 three outcomes.
 

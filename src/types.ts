@@ -14,7 +14,7 @@ export type Touch = {
   label?: string;
 };
 
-export type ModeId = 'touch-pick' | 'straw' | 'bumper' | 'spinner' | 'potato' | 'dvd' | 'dice';
+export type ModeId = 'touch-pick' | 'straw' | 'bumper' | 'spinner' | 'potato' | 'dvd' | 'dice' | 'keno';
 
 export type Mode = {
   id: ModeId;

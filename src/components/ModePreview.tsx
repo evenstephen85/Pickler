@@ -16,6 +16,7 @@ export function ModePreview({ mode }: { mode: ModeId }) {
       {mode === 'bumper' && <BumperArt />}
       {mode === 'dvd' && <DvdArt />}
       {mode === 'dice' && <DiceArt />}
+      {mode === 'keno' && <KenoArt />}
     </svg>
   );
 }
@@ -99,6 +100,33 @@ function BumperArt() {
       <circle cx="82" cy="52" r="8" fill="none" stroke={AMBER} strokeWidth="2.5" opacity="0.35" />
     </>
   );
+}
+
+/** A grid of numbers with one of them called. */
+function KenoArt() {
+  const cells = [];
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 6; col++) {
+      const called = row === 1 && col === 3;
+      const claimed = (row === 0 && col === 1) || (row === 2 && col === 4);
+      cells.push(
+        <rect
+          key={`${row}-${col}`}
+          x={14 + col * 13}
+          y={16 + row * 13}
+          width="10"
+          height="10"
+          rx="2"
+          fill={called ? ROSE : claimed ? CYAN : 'none'}
+          opacity={called ? 1 : claimed ? 0.7 : 1}
+          stroke={called ? ROSE : claimed ? CYAN : '#ffffff'}
+          strokeWidth={called ? 2.5 : 1.2}
+          strokeOpacity={called || claimed ? 1 : 0.3}
+        />,
+      );
+    }
+  }
+  return <>{cells}</>;
 }
 
 /** Two dice, one of them the high roll. */

@@ -7,6 +7,7 @@ import { HotPotato } from '../modes/HotPotato';
 import { Bumper } from '../modes/Bumper';
 import { Dvd } from '../modes/Dvd';
 import { Dice } from '../modes/Dice';
+import { Keno } from '../modes/Keno';
 import { Hint } from '../components/Hint';
 import { BackIcon, InfoIcon } from '../components/icons';
 import { OUTCOME_LABELS } from '../lib/outcome';
@@ -25,6 +26,7 @@ const MODE_COMPONENTS = {
   bumper: Bumper,
   dvd: Dvd,
   dice: Dice,
+  keno: Keno,
 } as const;
 
 export function PlayScreen({ mode, settings, onExit }: PlayScreenProps) {

@@ -409,6 +409,100 @@ body {
   will-change: transform;
 }
 
+/* ── Keno ─────────────────────────────────────────────────────────────────── */
+
+.keno-surface {
+  display: flex;
+  flex-direction: column;
+  /* The bottom inset has to clear the result banner, which sits over the
+     surface rather than in the flow — without it the last row of numbers ends
+     up underneath "You're up". */
+  padding:
+    calc(64px + var(--safe-top))
+    calc(12px + var(--safe-right))
+    calc(136px + var(--safe-bottom))
+    calc(12px + var(--safe-left));
+}
+
+.keno-board {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* Portrait phones get a tall 4-wide board so every number is a comfortable
+     target; a wide screen turns it back into the usual 10-across keno card. */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+@media (min-aspect-ratio: 1/1) {
+  .keno-board {
+    grid-template-columns: repeat(10, 1fr);
+  }
+}
+
+.keno-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.keno-cell.claimed {
+  border-color: var(--cell-color);
+  background: color-mix(in srgb, var(--cell-color) 22%, var(--surface));
+  color: var(--cell-color);
+}
+
+.keno-cell.marquee {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.85);
+  color: #101014;
+  transform: scale(1.06);
+}
+
+.keno-cell.called {
+  border-color: var(--cell-color, #ffffff);
+  background: var(--cell-color, #ffffff);
+  color: #101014;
+  box-shadow: 0 0 22px var(--cell-color, #ffffff);
+  animation: keno-hit 420ms ease-out;
+}
+
+.keno-cell.passed {
+  opacity: 0.35;
+}
+
+@keyframes keno-hit {
+  0%   { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+.keno-badge {
+  position: absolute;
+  top: 1px;
+  right: 5px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #101014;
+}
+
+.keno-surface .mode-hint {
+  bottom: calc(18px + var(--safe-bottom));
+}
+
+.keno-surface .mode-result {
+  bottom: calc(20px + var(--safe-bottom));
+  gap: 12px;
+}
+
 /* ── Dice Roll ────────────────────────────────────────────────────────────── */
 
 .die {
