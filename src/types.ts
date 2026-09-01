@@ -12,6 +12,13 @@ export type Touch = {
   downAt: number;
   /** The key a desktop player is holding, drawn inside their ring. */
   label?: string;
+  /**
+   * The finger is off the glass but the player is still in the round — either
+   * inside the grace window while gathering, or because the round has started
+   * and a lift no longer drops anybody. The position stops updating, so the
+   * ring simply stays where the finger last was.
+   */
+  released?: boolean;
 };
 
 export type ModeId = 'touch-pick' | 'straw' | 'bumper' | 'spinner' | 'potato' | 'dvd' | 'dice' | 'keno';

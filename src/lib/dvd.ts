@@ -33,8 +33,26 @@ export function fold(value: number, span: number): number {
 }
 
 /**
- * Builds a flight that starts at (x0, y0) and lands exactly on a corner at
+ * Which corner a flight ends in: 0 is the low edge of that axis (left / top),
+ * 1 is the high edge (right / bottom).
+ */
+export type Corner = { cx: 0 | 1; cy: 0 | 1 };
+
+export const CORNERS: Corner[] = [
+  { cx: 0, cy: 0 },
+  { cx: 1, cy: 1 },
+  { cx: 1, cy: 0 },
+  { cx: 0, cy: 1 },
+];
+
+/**
+ * Builds a flight that starts at (x0, y0) and lands exactly on `corner` at
  * `hitAt` seconds, moving at roughly `speed` pixels per second.
+ *
+ * The unfolded coordinate has to cover a whole number of box-lengths, and the
+ * *parity* of that number decides which end it lands on: an even count folds
+ * back to 0, an odd one to the far edge. So picking the corner is just picking
+ * the parity.
  */
 export function planFlight(
   x0: number,
@@ -42,20 +60,21 @@ export function planFlight(
   box: Box,
   hitAt: number,
   speed: number,
+  corner: Corner,
 ): Flight {
-  // Distance covered in each axis must be a whole number of box-lengths from
-  // the start point for the ring to arrive on a corner.
-  const lengths = (start: number, span: number) => {
+  const lengths = (start: number, span: number, end: 0 | 1) => {
     const wanted = (speed * hitAt) / Math.SQRT2;
-    const count = Math.max(1, Math.round((wanted + start) / span));
+    let count = Math.max(1, Math.round((wanted + start) / span));
+    // Even lands on the near edge, odd on the far one.
+    if (count % 2 !== end) count += 1;
     return (count * span - start) / hitAt;
   };
 
   return {
     x0,
     y0,
-    vx: lengths(x0, box.width),
-    vy: lengths(y0, box.height),
+    vx: lengths(x0, box.width, corner.cx),
+    vy: lengths(y0, box.height, corner.cy),
     hitAt,
   };
 }

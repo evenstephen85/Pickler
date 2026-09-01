@@ -27,8 +27,8 @@ down, the field settles, and the app decides. Lift your fingers to go again.
 | **Short Straw** | Everyone draws a straw from the bundle in the middle; they come out in fits and starts, and the short one is the pick. |
 | **Spinner** | A needle sweeps out from the middle, slows like a roulette wheel, and stops on someone. |
 | **Hot Potato** | A glowing potato flies finger to finger, faster and faster, until it stops on one. |
-| **Bumper Rings** | Your ring stays on your finger and you drive it — slide into someone and you might knock them out. |
-| **Corner Bounce** | The rings take off around the walls like the old DVD screensaver; first to nail a corner is the pick. |
+| **Bumper Rings** | After a 3-2-1, your ring stays on your finger and you drive it — slide into someone and you might knock them out, or might not. |
+| **Corner Bounce** | After a 3-2-1, everyone's logo takes off around the walls like the old DVD screensaver — hands off, and first to nail a corner is the pick. |
 | **Dice Roll** | A die tumbles out of every finger. Highest roll goes first. |
 | **Keno Board** | Claim a number on a 40-number board, then watch a highlight run over the grid and stop on the one that's drawn. |
 
@@ -41,8 +41,14 @@ screen.
 
 Several games do something extra when the outcome is **teams**: Spinner sends
 out one needle per member of the smaller team, Hot Potato flies one potato per
-team in that team's color, and Short Straw re-ties the straws into one knot
-per team.
+team in that team's color, Short Straw re-ties the straws into one knot per
+team, and Corner Bounce sends each team to its own corner — two teams take
+opposite corners, so it reads as a side of the screen each.
+
+**Bumper Rings on a desktop** has nothing to drive with: a held key has a
+fixed spot on screen, so nobody could ever reach anybody. When every player is
+on a key the rings drive themselves instead, drifting and bouncing off the
+walls.
 
 ## What a round hands back
 
@@ -52,6 +58,13 @@ all three:
 - **Pick one** — one finger, everybody else's ring disappears
 - **Turn order** — every ring is numbered 1st, 2nd, 3rd… for board game turn order
 - **Split teams** — the fingers are dealt into 2–4 teams and recolored
+
+**Lifting a finger never costs you your place.** While players are still
+gathering, a finger that comes off keeps its spot for a moment and a finger
+that comes straight back down nearby is treated as the same player — real
+hands on real glass flicker, and every one of those used to restart the "has
+everybody joined" wait. Once a round is under way a lift doesn't remove
+anybody at all: the ring simply stays where the finger last was.
 
 **A result stays on screen until somebody taps "Go again."** Lifting your
 fingers doesn't clear it — the field is snapshotted the moment the result

@@ -44,7 +44,17 @@ export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
     [beep, abort, phaseRef],
   );
 
-  const { touches, clear, handlers } = usePlayers({ accepting: phase === 'gathering', onAdd, onRemove });
+  const { touches, clear, handlers } = usePlayers({
+    accepting: phase === 'gathering',
+    // Once the draw is under way a lift leaves the ring where it was, so
+    // nobody loses their place by shifting their grip mid-round.
+    keepReleased: phase !== 'gathering',
+    onAdd,
+    onRemove,
+  });
+
+  /** Players whose finger is still down — what the driven games care about. */
+  const live = touches.filter((t) => !t.released);
 
   // The games' animations must not restart every time a fingertip jitters, but
   // they still need the live field when they fire — so they read it via a ref
@@ -55,7 +65,13 @@ export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
   }, [touches]);
 
   const { ready } = useSettle(touches, phase === 'gathering', () => {
-    onStart?.(start(touchesRef.current));
+    // The draw has to happen on its own line. Written as
+    // `onStart?.(start(...))` the optional call short-circuits when a game
+    // doesn't pass an onStart -- and JavaScript never evaluates the arguments
+    // of a call it skips, so the round silently never started. That is exactly
+    // what ailed the two games that had no onStart of their own.
+    const drawn = start(touchesRef.current);
+    onStart?.(drawn);
   });
 
   /**
@@ -78,5 +94,5 @@ export function useRound({ soundEnabled, hapticsEnabled, onStart }: Options) {
   // takes as long as it takes.
   const shown = phase === 'done' ? frozen : touches;
 
-  return { phase, ranking, touches, shown, ready, handlers, beep, buzz, finish: finishRound, reset };
+  return { phase, ranking, touches, live, shown, ready, handlers, beep, buzz, finish: finishRound, reset };
 }

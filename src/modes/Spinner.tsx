@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ModeProps } from './types';
 import { Ring } from '../components/Ring';
 import { Result } from '../components/Result';
@@ -23,9 +23,12 @@ type Needle = { targetId: number; color: string; angle: number };
  *
  * In teams mode there is one needle per member of the *smallest* team, all in
  * that team's color: name the short team and everyone else knows where they
- * stand. Each needle is aimed at its target from the first frame — the
- * deceleration is fitted to land there — so where people put their fingers
- * never changes anyone's odds.
+ * stand.
+ *
+ * A needle re-aims at its target on every frame rather than at the bearing the
+ * target had when the spin began, so it follows a finger that moves and still
+ * comes to rest pointing right at it. Which finger it is was fixed by the draw
+ * before the first frame, so tracking changes nothing about the odds.
  */
 export function Spinner({ settings, hint }: ModeProps) {
   const [needles, setNeedles] = useState<Needle[]>([]);
@@ -46,33 +49,48 @@ export function Spinner({ settings, hint }: ModeProps) {
       }
     },
   });
-  const { phase, ranking, shown, beep, buzz, finish } = round;
+  const { phase, ranking, touches, shown, beep, buzz, finish } = round;
+
+  // The live field, read inside the animation so a needle can follow a finger
+  // that moves without the spin restarting every time one twitches.
+  const touchesRef = useRef(touches);
+  useEffect(() => {
+    touchesRef.current = touches;
+  }, [touches]);
 
   useEffect(() => {
     if (phase !== 'running' || needles.length === 0) return;
 
-    const spins = needles.map((needle, i) => {
-      const target = ranking.find((t) => t.id === needle.targetId);
-      const bearing = target
-        ? Math.atan2(target.y - centre.y, target.x - centre.x)
-        : -Math.PI / 2;
-      const from = -Math.PI / 2;
-      // Wind forward whole turns, then stop on the target's bearing.
-      const sweep = (((bearing - from) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-      return { from, to: from + TURNS * Math.PI * 2 + sweep, duration: SPIN_MS + i * STAGGER_MS };
-    });
-
+    const targets = needles.map((n) => n.targetId);
+    const colors = needles.map((n) => n.color);
+    const from = -Math.PI / 2;
+    const durations = targets.map((_, i) => SPIN_MS + i * STAGGER_MS);
+    const total = Math.max(...durations);
     const started = performance.now();
-    const total = Math.max(...spins.map((s) => s.duration));
     let frame = 0;
     let lastTick = -1;
 
+    /** Where a target is right now, falling back to where it was drawn. */
+    const bearingOf = (id: number) => {
+      const at = touchesRef.current.find((t) => t.id === id) ?? ranking.find((t) => t.id === id);
+      if (!at) return from;
+      return Math.atan2(at.y - centre.y, at.x - centre.x);
+    };
+
     const step = (now: number) => {
       const elapsed = now - started;
-      const next = spins.map((spin, i) => {
-        const t = Math.min(1, elapsed / spin.duration);
+      const next = targets.map((targetId, i) => {
+        const t = Math.min(1, elapsed / durations[i]);
         const eased = 1 - (1 - t) ** 4;
-        return { ...needles[i], angle: spin.from + (spin.to - spin.from) * eased };
+        // Whole turns plus however far round the target is *now*. Both terms
+        // are scaled by the same easing, so the needle lands on the live
+        // bearing exactly as it stops.
+        const sweep = (((bearingOf(targetId) - from) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        return {
+          targetId,
+          color: colors[i],
+          angle: from + (TURNS * Math.PI * 2 + sweep) * eased,
+        };
       });
       setNeedles(next);
 

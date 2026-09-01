@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Touch } from '../types';
 import type { ModeProps } from './types';
 import { Ring } from '../components/Ring';
 import { Result } from '../components/Result';
@@ -15,10 +16,9 @@ const PULL_MS = 4200;
  * The shortest has to clear the ring drawn around the finger, or the whole
  * point of the reveal is hidden underneath it.
  */
-const SHORTEST_PX = 112;
-const STEP_PX = 62;
-/** A long straw may be drawn out past the bundle rather than be cut short. */
-const REACH_ALLOWANCE = 1.6;
+const SHORTEST_PX = 90;
+/** Slack coiled in the knot on top of the longest straw, so every straw shrinks. */
+const TANGLE_PX = 90;
 
 /**
  * The pull is deliberately uneven: a tug, a pause, another tug. A smooth
@@ -36,6 +36,35 @@ const SURGES = [
 
 function smoothstep(t: number): number {
   return t * t * (3 - 2 * t);
+}
+
+/**
+ * Where the bundle sits: the point on screen that is furthest from every hand,
+ * found by scoring a coarse grid on distance-to-the-nearest-player. Parking it
+ * dead centre put it under somebody's palm as often as not; this way the straws
+ * always have somewhere to run to.
+ */
+function knotSpot(players: Touch[]): { x: number; y: number } {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const fallback = { x: w / 2, y: h / 2 };
+  if (players.length === 0) return fallback;
+
+  const margin = 110;
+  let best = fallback;
+  let bestScore = -Infinity;
+  for (let gx = 0; gx <= 8; gx++) {
+    for (let gy = 0; gy <= 12; gy++) {
+      const x = margin + (gx / 8) * (w - margin * 2);
+      const y = margin + (gy / 12) * (h - margin * 2);
+      const nearest = Math.min(...players.map((p) => Math.hypot(p.x - x, p.y - y)));
+      if (nearest > bestScore) {
+        bestScore = nearest;
+        best = { x, y };
+      }
+    }
+  }
+  return best;
 }
 
 /** Maps elapsed 0-1 onto pulled 0-1, in fits and starts. */
@@ -96,8 +125,28 @@ export function Straw({ settings, hint }: ModeProps) {
 
   const done = phase === 'done';
   const visible = done ? visibleAfterPick(shown, settings.outcome, ranking) : shown;
-  const knot = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  const knot = knotSpot(shown);
   const showTeamWeb = done && settings.outcome === 'teams';
+
+  /**
+   * The places are spread between the shortest straw and whatever the player
+   * closest to the bundle can actually hold. Sizing the longest straw to that
+   * reach — rather than to a fixed step per place — is what keeps the drawn
+   * lengths honest: a straw longer than its own reach would have to be capped,
+   * and two capped straws look like a tie.
+   */
+  const reachOf = (t: Touch) => Math.hypot(knot.x - t.x, knot.y - t.y);
+  const tightest = shown.length > 0 ? Math.min(...shown.map(reachOf)) : 400;
+  const longest = Math.max(SHORTEST_PX + 60, tightest * 0.92);
+  const stepPx = ranking.length > 1 ? (longest - SHORTEST_PX) / (ranking.length - 1) : 0;
+
+  /**
+   * Everybody starts holding the same amount of straw — more than the longest
+   * anybody will end up with. That is what makes the pull read correctly:
+   * every straw only ever gets *shorter*, and they all start even, so no one
+   * can tell anything from the opening frame.
+   */
+  const startLength = longest + TANGLE_PX;
 
   /**
    * How much straw a player is left holding — rank 0 the shortest, then a fixed
@@ -105,24 +154,46 @@ export function Straw({ settings, hint }: ModeProps) {
    * to the bundle, so the lengths stay comparable by eye wherever the fingers
    * landed.
    */
-  function remainingFor(id: number, x: number, y: number): number {
+  function remainingFor(id: number): number {
     const rank = ranking.findIndex((t) => t.id === id);
-    const reach = Math.hypot(knot.x - x, knot.y - y);
-    if (rank === -1) return reach;
-    // Capped generously rather than at the bundle itself: clamping every long
-    // straw to the same reach would make two places look like a tie.
-    return Math.min(SHORTEST_PX + rank * STEP_PX, reach * REACH_ALLOWANCE);
+    if (rank === -1) return startLength;
+    return SHORTEST_PX + rank * stepPx;
   }
 
-  /** A straw with a little sag in it, so it reads as straw and not as a wire. */
-  function strawPath(x: number, y: number, tipX: number, tipY: number, bend: number): string {
-    const midX = (x + tipX) / 2;
-    const midY = (y + tipY) / 2;
-    const dx = tipX - x;
-    const dy = tipY - y;
-    const len = Math.hypot(dx, dy) || 1;
-    // Push the control point sideways to the straw's own direction.
-    return `M ${x} ${y} Q ${midX + (-dy / len) * bend} ${midY + (dx / len) * bend} ${tipX} ${tipY}`;
+  /**
+   * A straw from the hand towards the bundle, as a single arc.
+   *
+   * The bow is a *ratio* of the straw's own length rather than a fixed number
+   * of pixels. That matters more than it looks: with a fixed bow, a short
+   * straw gained proportionally more drawn length than a long one, and the
+   * places came out in the wrong order on screen even though the draw
+   * underneath was right. Scaling it keeps every straw's drawn length
+   * proportional to the length it is meant to be showing.
+   *
+   * Any length over the straight-line distance to the bundle has to go
+   * somewhere, so it goes into a wider bow — which is what makes the straws
+   * arc over each other and pile into a tangle in the middle at the start,
+   * before the pull draws them out straight.
+   */
+  function strawPath(touch: Touch, length: number, toward = knot): string {
+    const dx = toward.x - touch.x;
+    const dy = toward.y - touch.y;
+    const reach = Math.hypot(dx, dy) || 1;
+    const ux = dx / reach;
+    const uy = dy / reach;
+
+    const chord = Math.min(length, reach);
+    const surplus = Math.max(0, length - chord);
+    // Each straw leans its own way, so no two lie on top of each other.
+    const lean = touch.colorIndex % 2 === 0 ? 1 : -1;
+    const bow = ((0.10 + (touch.colorIndex % 3) * 0.015) * chord + surplus * 0.45) * lean;
+
+    const tipX = touch.x + ux * chord;
+    const tipY = touch.y + uy * chord;
+    const midX = (touch.x + tipX) / 2 + -uy * bow;
+    const midY = (touch.y + tipY) / 2 + ux * bow;
+
+    return `M ${touch.x} ${touch.y} Q ${midX} ${midY} ${tipX} ${tipY}`;
   }
 
   return (
@@ -143,8 +214,11 @@ export function Straw({ settings, hint }: ModeProps) {
         {/* The bundle everyone is drawing from, until the straws are all out. */}
         {!showTeamWeb && progress < 1 && (
           <g className="bundle" opacity={1 - progress * 0.85}>
-            <circle cx={knot.x} cy={knot.y} r={26} />
-            <circle cx={knot.x} cy={knot.y} r={17} />
+            {/* A coil rather than a target: three loops at different tilts so
+                the middle reads as tangled straw. */}
+            <ellipse cx={knot.x} cy={knot.y} rx={30} ry={20} transform={`rotate(-18 ${knot.x} ${knot.y})`} />
+            <ellipse cx={knot.x} cy={knot.y} rx={24} ry={15} transform={`rotate(34 ${knot.x} ${knot.y})`} />
+            <ellipse cx={knot.x} cy={knot.y} rx={15} ry={11} transform={`rotate(72 ${knot.x} ${knot.y})`} />
           </g>
         )}
 
@@ -163,7 +237,7 @@ export function Straw({ settings, hint }: ModeProps) {
                     <path
                       key={member.id}
                       className="straw"
-                      d={strawPath(member.x, member.y, hub.x, hub.y, 14)}
+                      d={strawPath(member, Math.hypot(hub.x - member.x, hub.y - member.y), hub)}
                       stroke={color}
                     />
                   ))}
@@ -172,26 +246,24 @@ export function Straw({ settings, hint }: ModeProps) {
               );
             })
           : shown.map((touch) => {
-              const reach = Math.hypot(knot.x - touch.x, knot.y - touch.y) || 1;
-              const remaining =
+              // Only ever shrinks: from the shared starting length down to
+              // whatever this player's draw left them holding.
+              const length =
                 phase === 'gathering'
-                  ? reach
-                  : reach + (remainingFor(touch.id, touch.x, touch.y) - reach) * progress;
-              const ux = (knot.x - touch.x) / reach;
-              const uy = (knot.y - touch.y) / reach;
-              const tipX = touch.x + ux * remaining;
-              const tipY = touch.y + uy * remaining;
+                  ? startLength
+                  : startLength + (remainingFor(touch.id) - startLength) * progress;
+              const d = strawPath(touch, length);
               return (
                 <g key={touch.id}>
-                  <path className="straw shadow" d={strawPath(touch.x, touch.y, tipX, tipY, 10)} />
-                  <path className="straw" d={strawPath(touch.x, touch.y, tipX, tipY, 10)} />
+                  <path className="straw shadow" d={d} />
+                  <path className="straw" d={d} />
                   {/* Whose hand is on this straw. In 'pick one' the losing rings
                       are gone, and without these the straws float unowned. */}
                   <circle
                     className="straw-grip"
                     cx={touch.x}
                     cy={touch.y}
-                    r={9}
+                    r={10}
                     fill={colorAt(touch.colorIndex)}
                   />
                 </g>
