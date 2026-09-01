@@ -1,0 +1,429 @@
+:root {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #131316;
+  --surface-2: #1e1e24;
+  --text: #f5f5f7;
+  --muted: #9a9aa5;
+  --accent: #00e5ff;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 588px;
+  width: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  gap: 16px;
+  padding:
+    calc(18px + var(--safe-top))
+    calc(18px + var(--safe-right))
+    calc(18px + var(--safe-bottom))
+    calc(18px + var(--safe-left));
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.primary-button {
+  flex: none;
+  padding: 16px 20px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #04141a;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.primary-button:active {
+  transform: scale(0.98);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-button.ghost {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+}
+
+.icon-button:active {
+  transform: scale(0.94);
+}
+
+/* ── Splash ───────────────────────────────────────────────────────────────── */
+
+.splash {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--bg);
+  transition: opacity 420ms ease;
+}
+
+.splash-in { opacity: 0; }
+.splash-hold { opacity: 1; }
+.splash-out { opacity: 0; }
+
+.splash-rings {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  margin-bottom: 22px;
+}
+
+.splash-rings span {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 56px;
+  height: 56px;
+  border: 4px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: splash-ring 1800ms ease-out infinite;
+  animation-delay: calc(var(--i) * 360ms);
+}
+
+.splash-rings span:nth-child(2) { border-color: #ff2e63; }
+.splash-rings span:nth-child(3) { border-color: #ffd400; }
+
+@keyframes splash-ring {
+  0%   { transform: scale(0.5); opacity: 0; }
+  35%  { opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.splash-title {
+  font-size: 46px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.splash-subtitle {
+  font-size: 15px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Rules ────────────────────────────────────────────────────────────────── */
+
+.rules-screen {
+  justify-content: space-between;
+}
+
+.rules-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.rules-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #dcdce4;
+}
+
+.rules-list {
+  margin: 18px 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rules-note {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ── Menu ─────────────────────────────────────────────────────────────────── */
+
+.menu-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.menu-title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.menu-subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.menu-lead {
+  margin: 0;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+.mode-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+  border: 0;
+  border-left: 5px solid var(--accent);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-card:active {
+  transform: scale(0.99);
+  background: var(--surface-2);
+}
+
+.mode-card-name {
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.mode-card-tagline {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* ── Play surface ─────────────────────────────────────────────────────────── */
+
+.play-screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #000;
+}
+
+.play-controls {
+  position: absolute;
+  z-index: 3;
+  top: calc(10px + var(--safe-top));
+  left: calc(10px + var(--safe-left));
+  right: calc(10px + var(--safe-right));
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.play-controls .icon-button {
+  pointer-events: auto;
+}
+
+.mode-surface {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Without this the browser claims the gesture for scroll/zoom and the second
+     finger never reaches the app. */
+  touch-action: none;
+}
+
+.mode-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(34px + var(--safe-bottom));
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  pointer-events: none;
+  animation: hint-fade 2600ms ease-in-out infinite;
+}
+
+@keyframes hint-fade {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.95; }
+}
+
+.mode-result {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(40px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.mode-result-label {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.mode-again {
+  padding: 13px 30px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── Rings ────────────────────────────────────────────────────────────────── */
+
+.ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 132px;
+  height: 132px;
+  /* The -50%,-50% keeps the ring centred on the fingertip while the inline
+     transform positions it; both live in one transform so it stays on the
+     compositor. */
+  margin: -66px 0 0 -66px;
+  border: 5px solid var(--ring-color);
+  border-radius: 50%;
+  box-shadow: 0 0 26px var(--ring-color), inset 0 0 18px var(--ring-color);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ring.pulsing {
+  animation: ring-pulse 620ms ease-in-out infinite;
+}
+
+@keyframes ring-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--ring-color), inset 0 0 12px var(--ring-color); }
+  50%      { box-shadow: 0 0 52px var(--ring-color), inset 0 0 30px var(--ring-color); }
+}
+
+.ring.won {
+  animation: ring-win 900ms ease-out;
+}
+
+@keyframes ring-win {
+  0%   { box-shadow: 0 0 0 var(--ring-color); }
+  40%  { box-shadow: 0 0 90px var(--ring-color), inset 0 0 40px var(--ring-color); }
+  100% { box-shadow: 0 0 34px var(--ring-color), inset 0 0 20px var(--ring-color); }
+}
+
+/* ── Sheet ────────────────────────────────────────────────────────────────── */
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.sheet {
+  width: 100%;
+  max-height: 80%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding:
+    22px
+    calc(20px + var(--safe-right))
+    calc(22px + var(--safe-bottom))
+    calc(20px + var(--safe-left));
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-rings span,
+  .mode-hint,
+  .ring.pulsing,
+  .ring.won {
+    animation: none;
+  }
+}
